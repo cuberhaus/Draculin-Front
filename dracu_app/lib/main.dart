@@ -99,8 +99,6 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
     // Implement your image processing logic here
     final uri = Uri.parse('http://your_server_endpoint');
 
-    final ImageFile = File(imagePath);
-
     // Create a multipart request
     final request = http.MultipartRequest('POST', uri)
       ..files.add(await http.MultipartFile.fromPath('image', imagePath));
@@ -165,6 +163,11 @@ class _MyAppState extends State<MyApp> {
   late MenstrualHealthSurvey survey; // Use the late keyword
   late List<Widget> _pages;
 
+  void _refreshChat() {
+    setState(() 
+    {});
+  }
+
   @override
   void initState() {
     super.initState();
@@ -196,7 +199,9 @@ class _MyAppState extends State<MyApp> {
     // Initialize the pages list in initState
     _pages = [
       DracuNewsScreen(),
-      DracuChatScreen(),
+      DracuChatScreen(
+        onMessagesUpdated: _refreshChat,
+      ),
       DracuQuizScreen(survey: survey), // Provide the survey object here
       DracuVisionScreen(),
     ];
@@ -261,6 +266,11 @@ class DracuNewsScreen extends StatefulWidget {
 }
 
 class DracuChatScreen extends StatefulWidget {
+  final void Function() onMessagesUpdated;
+
+  DracuChatScreen({Key? key, required this.onMessagesUpdated})
+      : super(key: key);
+
   @override
   _APIChatsScreenState createState() => _APIChatsScreenState();
 }
@@ -455,6 +465,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
       var message = data['messages_dict'][i.toString()];
       _messages.add(message);
     }
+    widget.onMessagesUpdated();
   }
 
   void _sendMessage(String message) async {
@@ -472,8 +483,9 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
       if (response.statusCode == 200) {
         print('Message sent successfully');
         final data = json.decode(response.body);
-        _updateMessages(data);
-        setState(() {});
+        setState(() {
+          _updateMessages(data);
+        });
       } else {
         print('Failed to send message. Status code: ${response.statusCode}');
       }
