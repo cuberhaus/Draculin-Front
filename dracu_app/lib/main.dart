@@ -10,6 +10,95 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 
+import 'package:flutter/material.dart';
+
+class BloodVolumePerWeekDayGraph extends StatelessWidget {
+  // Sample data: ml of blood per weekday
+  final Map<String, int> bloodVolumeData = {
+    'Mon': 5,
+    'Tue': 10,
+    'Wed': 7,
+    'Thu': 15,
+    'Fri': 8,
+    'Sat': 4,
+    'Sun': 6,
+  };
+
+  BloodVolumePerWeekDayGraph({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    List<Widget> plotPoints = [];
+    List<int> values = bloodVolumeData.values.toList();
+
+    for (int i = 0; i < values.length; i++) {
+      plotPoints.add(
+        Expanded(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              Container(
+                height: values[i].toDouble() *
+                    5, // Scale factor for visual representation
+                width: 10,
+                color: Colors.blue,
+              ),
+              Text(bloodVolumeData.keys.elementAt(i)),
+            ],
+          ),
+        ),
+      );
+
+      // // Adding lines between points
+      // if (i < values.length - 1) {
+      //   double nextValueHeight = values[i + 1].toDouble() * 5;
+      //   double currentHeight = values[i].toDouble() * 5;
+      //   plotPoints.add(
+      //     Expanded(
+      //       child: CustomPaint(
+      //         painter: LinePainter(
+      //           startHeight: currentHeight,
+      //           endHeight: nextValueHeight,
+      //         ),
+      //       ),
+      //     ),
+      //   );
+      // }
+    }
+
+    return Container(
+      height: 200,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: plotPoints,
+      ),
+    );
+  }
+}
+
+// class LinePainter extends CustomPainter {
+//   final double startHeight;
+//   final double endHeight;
+
+//   LinePainter({required this.startHeight, required this.endHeight});
+
+//   @override
+//   void paint(Canvas canvas, Size size) {
+//     final paint = Paint()
+//       ..color = Colors.black
+//       ..strokeWidth = 2;
+
+//     Offset startPoint = Offset(size.width / 2, size.height - startHeight);
+//     Offset endPoint = Offset(size.width / 2, size.height - endHeight);
+
+//     canvas.drawLine(startPoint, endPoint, paint);
+//   }
+
+//   @override
+//   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+// }
+
+
 class QuestionnairePerformanceGraph extends StatelessWidget {
   // Sample data for the bar chart
   final Map<String, int> questionnaireResults = {
@@ -61,7 +150,7 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
 
 class PeriodCalendar extends StatelessWidget {
   // Example data: days with periods
-  final List<int> periodDays = [5, 12, 19, 26];
+  final List<int> periodDays = [2,3 , 4, 5, 28,29,30];
 
   @override
   Widget build(BuildContext context) {
@@ -126,7 +215,7 @@ class StatsScreen extends StatelessWidget {
             Text('ML per Day'),
             Container(
               height: 200,
-              color: Colors.grey[200], // Placeholder for graph
+              child: BloodVolumePerWeekDayGraph(),
             ),
             Text('Calendar with Period Days'),
             Container(
