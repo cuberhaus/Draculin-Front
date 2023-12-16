@@ -172,7 +172,7 @@ class MenstrualHealthSurvey {
     if (totalScore <= 3) return 'Impacte lleu o cap impacte.';
     if (totalScore <= 7)
       return 'Impacte moderat, pot requerir una revisió mèdica.';
-    return 'Impacte sever, és aconsellable buscar ajuda mèdica.';
+    return 'Impacte sever, és aconsellable buscar ajuda mèdica. Truca al 112 per a assistència d\'emergència.';
   }
 }
 
@@ -187,22 +187,50 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
     );
   }
 
-  Widget _buildQuestion() {
+Widget _buildQuestion() {
     Question currentQuestion = widget.survey.questions[_currentQuestionIndex];
 
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(currentQuestion.text),
-        ElevatedButton(
-          onPressed: () => _answerQuestion(true),
-          child: Text('Sí'),
-        ),
-        ElevatedButton(
-          onPressed: () => _answerQuestion(false),
-          child: Text('No'),
-        ),
-      ],
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            currentQuestion.text,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: () => _answerQuestion(true),
+            // child: Text('Sí'),
+            child: Text(
+              'Sí',
+              style: TextStyle(color: Colors.black), // Black text color
+            ),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.pink,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+          ),
+          SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () => _answerQuestion(false),
+            child: Text(
+              'No',
+              style: TextStyle(color: Colors.black), // Black text color
+            ),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.grey,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -220,17 +248,35 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
     }
   }
 
-  Widget _buildResult() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text('Resultat del Test:'),
-        Text(widget.survey.getResult()),
-        ElevatedButton(
-          onPressed: _restartQuiz,
-          child: Text('Restart Quiz'),
-        ),
-      ],
+Widget _buildResult() {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Resultat del Test:',
+            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 10),
+          Text(
+            widget.survey.getResult(),
+            style: TextStyle(fontSize: 18, color: Colors.blue),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: _restartQuiz,
+            child: Text('Restart Quiz'),
+            style: ElevatedButton.styleFrom(
+              primary: Colors.green,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(30),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
