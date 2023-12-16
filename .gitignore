@@ -1,4 +1,6 @@
 idea/
+generated_*
+Generated*
 # Miscellaneous
 *.lock
 *.log

@@ -3,6 +3,115 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
+// Camera
+import 'package:camera/camera.dart';
+import 'package:path/path.dart';
+import 'package:path_provider/path_provider.dart';
+
+class CameraWidget extends StatefulWidget {
+  final Function(String) onCapture;
+
+  CameraWidget({required this.onCapture});
+
+  @override
+  _CameraWidgetState createState() => _CameraWidgetState();
+}
+
+class _CameraWidgetState extends State<CameraWidget> {
+  late CameraController _controller;
+  late List<CameraDescription> _cameras;
+  bool _isCameraInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initCamera();
+  }
+
+  Future<void> _initCamera() async {
+    _cameras = await availableCameras();
+    _controller = CameraController(_cameras[0], ResolutionPreset.max);
+    _controller.initialize().then((_) {
+      if (!mounted) return;
+      setState(() {
+        _isCameraInitialized = true;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Future<void> _captureImage() async {
+    try {
+      final image = await _controller.takePicture();
+      widget.onCapture(image.path);
+    } catch (e) {
+      print(e);
+      // Handle error
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isCameraInitialized) {
+      return Center(child: CircularProgressIndicator());
+    }
+    return CameraPreview(_controller);
+  }
+}
+
+class DracuVisionScreen extends StatefulWidget {
+  @override
+  _DracuVisionScreenState createState() => _DracuVisionScreenState();
+}
+
+class _DracuVisionScreenState extends State<DracuVisionScreen> {
+  String _resultText = '';
+
+  void onImageCaptured(String imagePath) async {
+    // Process the image here
+    // For example, you could send the image to a server for processing
+    // and then display the result
+    String processedText = await processImage(imagePath);
+    setState(() {
+      _resultText = processedText;
+    });
+  }
+
+  Future<String> processImage(String imagePath) async {
+    // Implement your image processing logic here
+    // This is a placeholder for your actual processing logic
+    return "Processed text from the image";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('DracuVision'),
+      ),
+      body: Column(
+        children: [
+          Expanded(
+            child: CameraWidget(
+              onCapture: onImageCaptured,
+            ),
+          ),
+          if (_resultText.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(_resultText),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 void main() {
   runApp(MyApp());
 }
@@ -129,14 +238,14 @@ class DracuQuizScreen extends StatefulWidget {
   _DracuQuizScreenState createState() => _DracuQuizScreenState();
 }
 
-class DracuVisionScreen extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Vision Screen'),
-    );
-  }
-}
+// class DracuVisionScreen extends StatelessWidget {
+//   @override
+//   Widget build(BuildContext context) {
+//     return Center(
+//       child: Text('Vision Screen'),
+//     );
+//   }
+// }
 
 class Question {
   String text;
