@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:camera/camera.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class CameraWidget extends StatefulWidget {
   final Function(String) onCapture;
@@ -60,7 +61,19 @@ class _CameraWidgetState extends State<CameraWidget> {
     if (!_isCameraInitialized) {
       return Center(child: CircularProgressIndicator());
     }
-    return CameraPreview(_controller);
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: <Widget>[
+        CameraPreview(_controller),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: FloatingActionButton(
+            onPressed: _captureImage,
+            child: Icon(Icons.camera),
+          ),
+        )
+      ],
+    );
   }
 }
 
@@ -85,6 +98,9 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
   Future<String> processImage(String imagePath) async {
     // Implement your image processing logic here
     // This is a placeholder for your actual processing logic
+    final ImageFile = File(imagePath);
+
+
     return "Processed text from the image";
   }
 
