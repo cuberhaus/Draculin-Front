@@ -9,6 +9,92 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+class PeriodCalendar extends StatelessWidget {
+  // Example data: days with periods
+  final List<int> periodDays = [5, 12, 19, 26];
+
+  @override
+  Widget build(BuildContext context) {
+    // Assuming a fixed number of days for simplicity
+    int daysInMonth = 30;
+
+    // Create a grid of days
+    List<Widget> dayWidgets = List.generate(daysInMonth, (index) {
+      int day = index + 1;
+      bool isPeriodDay = periodDays.contains(day);
+
+      return Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(day.toString()),
+            if (isPeriodDay)
+              Positioned(
+                bottom: 4,
+                right: 4,
+                child: Container(
+                  width: 8,
+                  height: 8,
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Period Calendar'),
+      ),
+      body: GridView.count(
+        crossAxisCount: 7, // 7 days in a week
+        children: dayWidgets,
+      ),
+    );
+  }
+}
+
+
+class StatsScreen extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    // Placeholder widgets for mock graphs
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Stats'),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            Text('ML per Day'),
+            Container(
+              height: 200,
+              color: Colors.grey[200], // Placeholder for graph
+            ),
+            Text('Calendar with Period Days'),
+            Container(
+              height: 300, // Give a specific height to the calendar
+              child: PeriodCalendar(), // Add the PeriodCalendar widget here
+            ),
+            Text('Questionnaire Performance'),
+            Container(
+              height: 200,
+              color: Colors.grey[400], // Placeholder for graph
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class CameraWidget extends StatefulWidget {
   final Function(String) onCapture;
 
@@ -97,7 +183,7 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
 
   Future<String> processImage(String imagePath) async {
     // Implement your image processing logic here
-    final uri = Uri.parse('http://your_server_endpoint');
+    final uri = Uri.parse('https://your_server_endpoint');
 
     // Create a multipart request
     final request = http.MultipartRequest('POST', uri)
@@ -198,6 +284,7 @@ class _MyAppState extends State<MyApp> {
 
     // Initialize the pages list in initState
     _pages = [
+      StatsScreen(), // Add the new stats screen
       DracuNewsScreen(),
       DracuChatScreen(
         onMessagesUpdated: _refreshChat,
@@ -237,6 +324,10 @@ class _MyAppState extends State<MyApp> {
           selectedFontSize: 16.0,
           unselectedFontSize: 14.0,
           items: [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: 'Stats',
+            ),
             BottomNavigationBarItem(
               icon: Icon(Icons.language),
               label: 'DracuNews',
@@ -442,7 +533,7 @@ class News {
 }
 
 class _APIChatsScreenState extends State<DracuChatScreen> {
-  final String apiUrl = 'http://10.0.2.2:8000/api/chat/';
+  final String apiUrl = 'https://bitsxmarato.onrender.com/api/chat/';
 
   TextEditingController _messageController = TextEditingController();
   List<String> _messages = [];
@@ -472,7 +563,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     print('Message sent: $message');
 
     Map<String, String> body = {'message': message};
-    String apiUrl = 'http://10.0.2.2:8000/api/chat/';
+    String apiUrl = 'https://10.0.2.2:8000/api/chat/';
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -558,7 +649,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 }
 
 class _APINewsScreenState extends State<DracuNewsScreen> {
-  final String apiUrl = 'http://10.0.2.2:8000/api/news';
+  final String apiUrl = 'https://bitsxmarato.onrender.com/api/news';
 
   Future<Map<String, dynamic>> fetchData() async {
     final response = await http.get(Uri.parse(apiUrl));
@@ -599,6 +690,7 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
                 children: newsList.map((news) {
               return Card(
                 child: ListTile(
+                  leading: Image.network(news.img, width: 100, height: 100), // Display the image
                   title: Text(news.title),
                   onTap: () {
                     _launchURL(news.link);
