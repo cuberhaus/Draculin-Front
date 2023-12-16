@@ -11,10 +11,7 @@ import 'dart:io';
 
 
 
-import 'package:flutter/material.dart';
-
 class BloodVolumePerWeekDayGraph extends StatelessWidget {
-  // Sample data: ml of blood per weekday
   final Map<String, int> bloodVolumeData = {
     'Mon': 5,
     'Tue': 10,
@@ -33,18 +30,33 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
     List<int> values = bloodVolumeData.values.toList();
 
     for (int i = 0; i < values.length; i++) {
+      String day = bloodVolumeData.keys.elementAt(i);
+      int value = values[i];
       plotPoints.add(
         Expanded(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Container(
-                height: values[i].toDouble() *
-                    5, // Scale factor for visual representation
-                width: 10,
-                color: Colors.blue,
+              Tooltip(
+                message: '$value',
+                child: GestureDetector(
+                  onTap: () {
+                    final snackBar = SnackBar(
+                      content: Text('$value'),
+                      duration: Duration(seconds: 2),
+                    );
+                    ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    // You can perform any action on tap, for example, show a dialog or a snackbar
+                  },
+                  child: Container(
+                    height: value.toDouble() *
+                        5, // Scale factor for visual representation
+                    width: 10,
+                    color: Colors.blue,
+                  ),
+                ),
               ),
-              Text(bloodVolumeData.keys.elementAt(i)),
+              Text(day),
             ],
           ),
         ),
@@ -60,6 +72,7 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
     );
   }
 }
+
 
 
 
