@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
 
+
 import 'package:flutter/material.dart';
 
 class BloodVolumePerWeekDayGraph extends StatelessWidget {
@@ -48,22 +49,6 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
           ),
         ),
       );
-
-      // // Adding lines between points
-      // if (i < values.length - 1) {
-      //   double nextValueHeight = values[i + 1].toDouble() * 5;
-      //   double currentHeight = values[i].toDouble() * 5;
-      //   plotPoints.add(
-      //     Expanded(
-      //       child: CustomPaint(
-      //         painter: LinePainter(
-      //           startHeight: currentHeight,
-      //           endHeight: nextValueHeight,
-      //         ),
-      //       ),
-      //     ),
-      //   );
-      // }
     }
 
     return Container(
@@ -76,27 +61,7 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
   }
 }
 
-// class LinePainter extends CustomPainter {
-//   final double startHeight;
-//   final double endHeight;
 
-//   LinePainter({required this.startHeight, required this.endHeight});
-
-//   @override
-//   void paint(Canvas canvas, Size size) {
-//     final paint = Paint()
-//       ..color = Colors.black
-//       ..strokeWidth = 2;
-
-//     Offset startPoint = Offset(size.width / 2, size.height - startHeight);
-//     Offset endPoint = Offset(size.width / 2, size.height - endHeight);
-
-//     canvas.drawLine(startPoint, endPoint, paint);
-//   }
-
-//   @override
-//   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
-// }
 
 
 class QuestionnairePerformanceGraph extends StatelessWidget {
@@ -107,8 +72,7 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
     'Impacte sever': 3, // Number of users with severe impact
   };
 
-  QuestionnairePerformanceGraph({Key? key})
-      : super(key: key);
+  QuestionnairePerformanceGraph({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
@@ -120,16 +84,40 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
           return Column(
             mainAxisAlignment: MainAxisAlignment.end,
             children: <Widget>[
-              Container(
-                height: (entry.value * 10).toDouble(), // Example scaling factor
-                width: 40,
-                color: _getColorForCategory(entry.key),
+              InkWell(
+                onTap: () => _showDialog(context, entry.key, entry.value),
+                child: Container(
+                  height:
+                      (entry.value * 10).toDouble(), // Example scaling factor
+                  width: 40,
+                  color: _getColorForCategory(entry.key),
+                ),
               ),
               Text(entry.key),
             ],
           );
         }).toList(),
       ),
+    );
+  }
+
+  void _showDialog(BuildContext context, String category, int value) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text(category),
+          content: Text('Number of users: $value'),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Close'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -148,9 +136,15 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
 }
 
 
-class PeriodCalendar extends StatelessWidget {
+
+class PeriodCalendar extends StatefulWidget {
+  @override
+  _PeriodCalendarState createState() => _PeriodCalendarState();
+}
+
+class _PeriodCalendarState extends State<PeriodCalendar> {
   // Example data: days with periods
-  final List<int> periodDays = [2,3 , 4, 5, 28,29,30];
+  List<int> periodDays = [2, 3, 4, 5, 28, 29, 30];
 
   @override
   Widget build(BuildContext context) {
@@ -162,28 +156,31 @@ class PeriodCalendar extends StatelessWidget {
       int day = index + 1;
       bool isPeriodDay = periodDays.contains(day);
 
-      return Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.grey),
-        ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(day.toString()),
-            if (isPeriodDay)
-              Positioned(
-                bottom: 4,
-                right: 4,
-                child: Container(
-                  width: 8,
-                  height: 8,
-                  decoration: BoxDecoration(
-                    color: Colors.red,
-                    shape: BoxShape.circle,
+      return InkWell(
+        onTap: () => _handleTap(day),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.grey),
+          ),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(day.toString()),
+              if (isPeriodDay)
+                Positioned(
+                  bottom: 4,
+                  right: 4,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       );
     });
@@ -198,7 +195,18 @@ class PeriodCalendar extends StatelessWidget {
       ),
     );
   }
+
+  void _handleTap(int day) {
+    setState(() {
+      if (periodDays.contains(day)) {
+        periodDays.remove(day);
+      } else {
+        periodDays.add(day);
+      }
+    });
+  }
 }
+
 
 
 class StatsScreen extends StatelessWidget {
