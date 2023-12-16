@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:url_launcher/url_launcher.dart';
 
 void main() {
   runApp(MyApp());
@@ -8,6 +11,7 @@ class MyApp extends StatefulWidget {
   @override
   _MyAppState createState() => _MyAppState();
 }
+
 
 class _MyAppState extends State<MyApp> {
   int _currentIndex = 0;
@@ -105,32 +109,17 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-class DracuNewsScreen extends StatelessWidget {
+
+class DracuNewsScreen extends StatefulWidget {
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('News Screen'),
-    );
-  }
+  _APINewsScreenState createState() => _APINewsScreenState();
 }
 
-class DracuChatScreen extends StatelessWidget {
+class DracuChatScreen extends  StatefulWidget{
   @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Text('Chat Screen'),
-    );
-  }
+  _APIChatsScreenState createState() => _APIChatsScreenState();
 }
 
-// class DracuQuizScreen extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Center(
-//       child: Text('Quiz Screen'),
-//     );
-//   }
-// }
 class DracuQuizScreen extends StatefulWidget {
   final MenstrualHealthSurvey survey;
 
@@ -286,5 +275,194 @@ Widget _buildResult() {
       _isQuizCompleted = false;
       widget.survey.totalScore = 0;
     });
+  }
+}
+
+class News {
+  final String title;
+  final String link;
+  final String img;
+
+  News({required this.title, required this.link, required this.img});
+}
+
+
+class _APIChatsScreenState extends State<DracuChatScreen> {
+  final String apiUrl = 'http://10.0.2.2:8000/api/chat/';
+
+  TextEditingController _messageController = TextEditingController();
+  List<String> _messages = [];
+
+  Future<Map<String, dynamic>> fetchData() async {
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      _updateMessages(data);
+      return data;
+    } else {
+      throw Exception('Failed to load data from API');
+    }
+  }
+
+  void _updateMessages(Map<String, dynamic> data) {
+    _messages.clear();
+    for (var i = 0; i < data['messages_dict'].length; i++) {
+      var message = data['messages_dict'][i.toString()];
+      _messages.add(message);
+    }
+  }
+
+  void _sendMessage(String message) async {
+    print('Message sent: $message');
+
+    Map<String, String> body = {'message': message};
+    String apiUrl  = 'http://10.0.2.2:8000/api/chat/';
+    try {
+      final response = await http.post(
+        Uri.parse(apiUrl),
+        body: json.encode(body),
+        headers: {'Content-Type': 'application/json'},
+      );
+
+      if (response.statusCode == 200) {
+        print('Message sent successfully');
+        final data = json.decode(response.body);
+        _updateMessages(data);
+        setState(() {});
+      } else {
+        print('Failed to send message. Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error sending message: $e');
+    }
+    
+    _messageController.clear();
+  }
+
+ @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('DracuChat'),
+      ),
+      body: FutureBuilder<Map<String, dynamic>>(
+        future: fetchData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError || snapshot.data == null) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            return Column(
+              children: <Widget>[
+                Flexible(
+                  child: ListView.builder(
+                    padding: EdgeInsets.all(8.0),
+                    reverse: true,
+                    itemCount: _messages.length,
+                    itemBuilder: (_, int index) => Text(_messages[index]),
+                  ),
+                ),
+                Divider(height: 1.0),
+                _buildMessageInput(),
+              ],
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  Widget _buildMessageInput() {
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              controller: _messageController,
+              decoration: InputDecoration(
+                hintText: 'Type a message...',
+              ),
+            ),
+          ),
+          IconButton(
+            icon: Icon(Icons.send),
+            onPressed: () {
+              if (_messageController.text.isNotEmpty) {
+                _sendMessage(_messageController.text);
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+
+
+class _APINewsScreenState extends State<DracuNewsScreen> {
+
+  final String apiUrl = 'http://10.0.2.2:8000/api/news';
+
+  Future<Map<String, dynamic>> fetchData() async {
+    final response = await http.get(Uri.parse(apiUrl));
+
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      throw Exception('Failed to load data from API');
+    }
+  }
+
+    @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('DracuNews'),
+      ),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: fetchData(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError || snapshot.data == null) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else {
+            // Utiliza los datos de la API aquí
+            final data = snapshot.data!;
+            List<News> newsList = [];
+
+            for (var i = 0; i < data['news'].length; i++) {
+              var newsData = data['news'][i.toString()];
+              newsList.add(News(title: newsData['title'], link: newsData['link'], img: newsData['img']));
+            }
+            return ListView(
+              children: newsList.map((news) {
+                return Card(
+                  child: ListTile(
+                    title: Text(news.title),
+                    onTap: () {
+                      _launchURL(news.link);
+                    },
+                  ),
+                );
+              }).toList()
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  _launchURL(String url) async {
+    Uri uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri);
+    } else {
+      throw 'No se pudo abrir la URL: $url';
+    }
   }
 }
