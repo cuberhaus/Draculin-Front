@@ -9,6 +9,56 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+
+class QuestionnairePerformanceGraph extends StatelessWidget {
+  // Sample data for the bar chart
+  final Map<String, int> questionnaireResults = {
+    'Impacte lleu': 10, // Number of users with light impact
+    'Impacte moderat': 5, // Number of users with moderate impact
+    'Impacte sever': 3, // Number of users with severe impact
+  };
+
+  QuestionnairePerformanceGraph({Key? key})
+      : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 200,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: questionnaireResults.entries.map((entry) {
+          return Column(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: <Widget>[
+              Container(
+                height: (entry.value * 10).toDouble(), // Example scaling factor
+                width: 40,
+                color: _getColorForCategory(entry.key),
+              ),
+              Text(entry.key),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Color _getColorForCategory(String category) {
+    switch (category) {
+      case 'Impacte lleu':
+        return Colors.green;
+      case 'Impacte moderat':
+        return Colors.orange;
+      case 'Impacte sever':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
+  }
+}
+
+
 class PeriodCalendar extends StatelessWidget {
   // Example data: days with periods
   final List<int> periodDays = [5, 12, 19, 26];
@@ -86,7 +136,7 @@ class StatsScreen extends StatelessWidget {
             Text('Questionnaire Performance'),
             Container(
               height: 200,
-              color: Colors.grey[400], // Placeholder for graph
+              child: QuestionnairePerformanceGraph(),
             ),
           ],
         ),
