@@ -97,9 +97,32 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
 
   Future<String> processImage(String imagePath) async {
     // Implement your image processing logic here
-    // This is a placeholder for your actual processing logic
+    final uri = Uri.parse('http://your_server_endpoint');
+
     final ImageFile = File(imagePath);
 
+    // Create a multipart request
+    final request = http.MultipartRequest('POST', uri)
+      ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+
+    try {
+      // Send the request
+      final streamedResponse = await request.send();
+
+      // Get the response from the server
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        // Process the response body
+        return response.body;
+      } else {
+        // Handle server error
+        return 'Error: Server returned status code ${response.statusCode}';
+      }
+    } catch (e) {
+      // Handle any exceptions
+      return 'Error: Failed to send image - $e';
+    }
 
     return "Processed text from the image";
   }
@@ -137,7 +160,6 @@ class MyApp extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
 }
 
-
 class _MyAppState extends State<MyApp> {
   int _currentIndex = 0;
   late MenstrualHealthSurvey survey; // Use the late keyword
@@ -150,7 +172,7 @@ class _MyAppState extends State<MyApp> {
     // Initialize the survey here
     survey = MenstrualHealthSurvey([
       // Add your questions here
-          Question(
+      Question(
           'El teu sagnat menstrual és més freqüent que cada 21 dies?', 2, 0),
       Question('El teu sagnat menstrual dura més de 7 dies?', 2, 0),
       Question(
@@ -169,7 +191,6 @@ class _MyAppState extends State<MyApp> {
           'El teu període menstrual té un impacte negatiu en la teva vida social o emocional?',
           2,
           0)
-
     ]);
 
     // Initialize the pages list in initState
@@ -234,13 +255,12 @@ class _MyAppState extends State<MyApp> {
   }
 }
 
-
 class DracuNewsScreen extends StatefulWidget {
   @override
   _APINewsScreenState createState() => _APINewsScreenState();
 }
 
-class DracuChatScreen extends  StatefulWidget{
+class DracuChatScreen extends StatefulWidget {
   @override
   _APIChatsScreenState createState() => _APIChatsScreenState();
 }
@@ -301,7 +321,7 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
     );
   }
 
-Widget _buildQuestion() {
+  Widget _buildQuestion() {
     Question currentQuestion = widget.survey.questions[_currentQuestionIndex];
 
     return Padding(
@@ -362,7 +382,7 @@ Widget _buildQuestion() {
     }
   }
 
-Widget _buildResult() {
+  Widget _buildResult() {
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -411,7 +431,6 @@ class News {
   News({required this.title, required this.link, required this.img});
 }
 
-
 class _APIChatsScreenState extends State<DracuChatScreen> {
   final String apiUrl = 'http://10.0.2.2:8000/api/chat/';
 
@@ -442,7 +461,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     print('Message sent: $message');
 
     Map<String, String> body = {'message': message};
-    String apiUrl  = 'http://10.0.2.2:8000/api/chat/';
+    String apiUrl = 'http://10.0.2.2:8000/api/chat/';
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -461,11 +480,11 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     } catch (e) {
       print('Error sending message: $e');
     }
-    
+
     _messageController.clear();
   }
 
- @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -526,10 +545,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
 }
 
-
-
 class _APINewsScreenState extends State<DracuNewsScreen> {
-
   final String apiUrl = 'http://10.0.2.2:8000/api/news';
 
   Future<Map<String, dynamic>> fetchData() async {
@@ -542,7 +558,7 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
     }
   }
 
-    @override
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -562,20 +578,22 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
 
             for (var i = 0; i < data['news'].length; i++) {
               var newsData = data['news'][i.toString()];
-              newsList.add(News(title: newsData['title'], link: newsData['link'], img: newsData['img']));
+              newsList.add(News(
+                  title: newsData['title'],
+                  link: newsData['link'],
+                  img: newsData['img']));
             }
             return ListView(
-              children: newsList.map((news) {
-                return Card(
-                  child: ListTile(
-                    title: Text(news.title),
-                    onTap: () {
-                      _launchURL(news.link);
-                    },
-                  ),
-                );
-              }).toList()
-            );
+                children: newsList.map((news) {
+              return Card(
+                child: ListTile(
+                  title: Text(news.title),
+                  onTap: () {
+                    _launchURL(news.link);
+                  },
+                ),
+              );
+            }).toList());
           }
         },
       ),
