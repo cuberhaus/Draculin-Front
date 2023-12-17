@@ -9,7 +9,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-const String baseUrl = 'https://bitsxmarato.onrender.com';
+const String baseUrl = 'https://bits-draculin.onrender.com';
 
 class CameraWidget extends StatefulWidget {
   final Function(String) onCapture;
@@ -19,7 +19,6 @@ class CameraWidget extends StatefulWidget {
   @override
   _CameraWidgetState createState() => _CameraWidgetState();
 }
-
 
 class BloodVolumePerWeekDayGraph extends StatelessWidget {
   final Map<String, int> bloodVolumeData = {
@@ -82,10 +81,6 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
     );
   }
 }
-
-
-
-
 
 class QuestionnairePerformanceGraph extends StatelessWidget {
   // Sample data for the bar chart
@@ -158,8 +153,6 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
   }
 }
 
-
-
 class PeriodCalendar extends StatefulWidget {
   @override
   _PeriodCalendarState createState() => _PeriodCalendarState();
@@ -229,8 +222,6 @@ class _PeriodCalendarState extends State<PeriodCalendar> {
     });
   }
 }
-
-
 
 class StatsScreen extends StatelessWidget {
   @override
@@ -414,8 +405,7 @@ class _MyAppState extends State<MyApp> {
   late List<Widget> _pages;
 
   void _refreshChat() {
-    setState(() 
-    {});
+    setState(() {});
   }
 
   @override
@@ -689,7 +679,7 @@ class News {
 
 class _APIChatsScreenState extends State<DracuChatScreen> {
   final String apiUrl = "$baseUrl/api/chat/";
-  bool _hasFetchedData = false; 
+  bool _hasFetchedData = false;
   TextEditingController _messageController = TextEditingController();
   List<String> _messages = [];
 
@@ -704,6 +694,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
       throw Exception('Failed to load data from API');
     }
   }
+
   Future<Map<String, dynamic>> fetchData() async {
     final response = await http.get(Uri.parse(apiUrl));
 
@@ -758,7 +749,8 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     if (!_hasFetchedData) {
       fetchAndInitData().then((data) {
         setState(() {
-          _hasFetchedData = true; // Actualiza la bandera después de cargar los datos
+          _hasFetchedData =
+              true; // Actualiza la bandera después de cargar los datos
         });
       });
     } else {
@@ -858,9 +850,9 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
             for (var i = 0; i < data['news'].length; i++) {
               var newsData = data['news'][i.toString()];
               newsList.add(News(
-                  title: newsData['title'],
-                  link: newsData['link'],
-                  img: newsData['img']));
+                  title: newsData['title'] ?? 'Title not found',
+                  link: newsData['link'] ?? '#',
+                  img: newsData['img'] ?? 'url not found'));
             }
             return ListView(
                 children: newsList.map((news) {
