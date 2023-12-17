@@ -311,7 +311,10 @@ class _CameraWidgetState extends State<CameraWidget> {
     return Stack(
       alignment: Alignment.bottomCenter,
       children: <Widget>[
-        CameraPreview(_controller),
+        Center(
+          // This centers the CameraPreview
+          child: CameraPreview(_controller),
+        ),
         Padding(
           padding: const EdgeInsets.all(20),
           child: FloatingActionButton(
