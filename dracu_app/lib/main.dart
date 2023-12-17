@@ -20,6 +20,7 @@ class CameraWidget extends StatefulWidget {
   _CameraWidgetState createState() => _CameraWidgetState();
 }
 
+
 class BloodVolumePerWeekDayGraph extends StatelessWidget {
   final Map<String, int> bloodVolumeData = {
     'Mon': 5,
@@ -81,6 +82,10 @@ class BloodVolumePerWeekDayGraph extends StatelessWidget {
     );
   }
 }
+
+
+
+
 
 class QuestionnairePerformanceGraph extends StatelessWidget {
   // Sample data for the bar chart
@@ -153,6 +158,8 @@ class QuestionnairePerformanceGraph extends StatelessWidget {
   }
 }
 
+
+
 class PeriodCalendar extends StatefulWidget {
   @override
   _PeriodCalendarState createState() => _PeriodCalendarState();
@@ -222,6 +229,8 @@ class _PeriodCalendarState extends State<PeriodCalendar> {
     });
   }
 }
+
+
 
 class StatsScreen extends StatelessWidget {
   @override
@@ -336,35 +345,27 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
     });
   }
 
-  Future<String> processImage(String imagePath) async {
-    // Implement your image processing logic here
-    final uri = Uri.parse('http://your_server_endpoint');
+Future<String> processImage(String imagePath) async {
+  try {
+    final uri = Uri.parse('$baseUrl/api/camera/');
 
-    // Create a multipart request
-    final request = http.MultipartRequest('POST', uri)
+    var request = http.MultipartRequest('POST', uri)
       ..files.add(await http.MultipartFile.fromPath('image', imagePath));
 
-    try {
-      // Send the request
-      final streamedResponse = await request.send();
+    var response = await request.send();
 
-      // Get the response from the server
-      final response = await http.Response.fromStream(streamedResponse);
-
-      if (response.statusCode == 200) {
-        // Process the response body
-        return response.body;
-      } else {
-        // Handle server error
-        return 'Error: Server returned status code ${response.statusCode}';
-      }
-    } catch (e) {
-      // Handle any exceptions
-      return 'Error: Failed to send image - $e';
+    if (response.statusCode == 200) {
+      // Procesa el cuerpo de la respuesta
+      return await http.Response.fromStream(response).then((value) => value.body);
+    } else {
+      // Maneja el error del servidor
+      return 'Error: Server returned status code ${response.statusCode}';
     }
-
-    return "Processed text from the image";
+  } catch (e) {
+    // Maneja cualquier excepción
+    return 'Error: Failed to send image - $e';
   }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -405,7 +406,8 @@ class _MyAppState extends State<MyApp> {
   late List<Widget> _pages;
 
   void _refreshChat() {
-    setState(() {});
+    setState(() 
+    {});
   }
 
   @override
@@ -677,15 +679,16 @@ class News {
   News({required this.title, required this.link, required this.img});
 }
 
+
 class _APIChatsScreenState extends State<DracuChatScreen> {
-  final String apiUrl = "$baseUrl/api/chat/";
-  bool _hasFetchedData = false;
+  final String apiUrlInit = "$baseUrl/api/chat/";
+  final String apiUrlMess = "$baseUrl/api/messages/";
+  bool _hasFetchedData = false; 
   TextEditingController _messageController = TextEditingController();
   List<String> _messages = [];
 
   Future<Map<String, dynamic>> fetchAndInitData() async {
-    final String apiURL = "$baseUrl/api/messages/";
-    final response = await http.get(Uri.parse(apiUrl));
+    final response = await http.get(Uri.parse(apiUrlInit));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       _updateMessages(data);
@@ -696,7 +699,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
 
   Future<Map<String, dynamic>> fetchData() async {
-    final response = await http.get(Uri.parse(apiUrl));
+    final response = await http.get(Uri.parse(apiUrlMess));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -708,14 +711,18 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
 
   void _updateMessages(Map<String, dynamic> data) {
+    print("MESSAGES UPDATING____________________________________________");
     _messages.clear();
-    for (var i = 0; i < data['messages_dict'].length; i++) {
-      var message = data['messages_dict'][i.toString()];
-      _messages.add(message);
+
+    if (data != null && data['messages_dict'] != null) {
+      for (var i = 0; i < data['messages_dict'].length; i++) {
+        var message = data['messages_dict'][i.toString()];
+        _messages.add(message);
+      }
     }
+
     widget.onMessagesUpdated();
   }
-
   void _sendMessage(String message) async {
     print('Message sent: $message');
 
@@ -730,10 +737,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 
       if (response.statusCode == 200) {
         print('Message sent successfully');
-        final data = json.decode(response.body);
-        setState(() {
-          _updateMessages(data);
-        });
+        await fetchData(); // Recargar mensajes después de enviar el mensaje
       } else {
         print('Failed to send message. Status code: ${response.statusCode}');
       }
@@ -745,24 +749,25 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
 
   @override
-  Widget build(BuildContext context) {
-    if (!_hasFetchedData) {
-      fetchAndInitData().then((data) {
-        setState(() {
-          _hasFetchedData =
-              true; // Actualiza la bandera después de cargar los datos
-        });
+  void initState() {
+    super.initState();
+    // Llama a fetchAndInitData solo cuando se inicia el widget
+    fetchAndInitData().then((data) {
+      setState(() {
+        _hasFetchedData = true;
       });
-    } else {
-      fetchData();
-    }
+    });
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    // Elimina la llamada a fetchData de aquí
     return Scaffold(
       appBar: AppBar(
-        title: Text('DracuChat'),
+        title: Text('DracuChats'),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
-        future: fetchAndInitData(),
+        future: fetchData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -788,12 +793,11 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
       ),
     );
   }
-
   Widget _buildMessageInput() {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
+    return Container(
+      margin: EdgeInsets.all(8.0),
       child: Row(
-        children: [
+        children: <Widget>[
           Expanded(
             child: TextField(
               controller: _messageController,
@@ -815,6 +819,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     );
   }
 }
+
 
 class _APINewsScreenState extends State<DracuNewsScreen> {
   final String apiUrl = '$baseUrl/api/news';
