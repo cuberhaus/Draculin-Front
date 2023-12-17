@@ -238,7 +238,7 @@ class StatsScreen extends StatelessWidget {
     // Placeholder widgets for mock graphs
     return Scaffold(
       appBar: AppBar(
-        title: Text('Stats'),
+        title: Text('DracuStats'),
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -506,7 +506,7 @@ class _MyAppState extends State<MyApp> {
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.bar_chart),
-              label: 'Stats',
+              label: 'DracuStats',
             ),
           ],
         ),
@@ -767,7 +767,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('DracuNews'),
+        title: Text('DracuChat'),
       ),
       body: FutureBuilder<Map<String, dynamic>?>(
         future: fetchAndInitData(),
