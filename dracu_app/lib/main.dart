@@ -9,6 +9,16 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+const String baseUrl = 'https://bitsxmarato.onrender.com';
+
+class CameraWidget extends StatefulWidget {
+  final Function(String) onCapture;
+
+  CameraWidget({required this.onCapture});
+
+  @override
+  _CameraWidgetState createState() => _CameraWidgetState();
+}
 
 
 class BloodVolumePerWeekDayGraph extends StatelessWidget {
@@ -255,15 +265,6 @@ class StatsScreen extends StatelessWidget {
   }
 }
 
-class CameraWidget extends StatefulWidget {
-  final Function(String) onCapture;
-
-  CameraWidget({required this.onCapture});
-
-  @override
-  _CameraWidgetState createState() => _CameraWidgetState();
-}
-
 class _CameraWidgetState extends State<CameraWidget> {
   late CameraController _controller;
   late List<CameraDescription> _cameras;
@@ -343,7 +344,7 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
 
   Future<String> processImage(String imagePath) async {
     // Implement your image processing logic here
-    final uri = Uri.parse('https://your_server_endpoint');
+    final uri = Uri.parse('http://your_server_endpoint');
 
     // Create a multipart request
     final request = http.MultipartRequest('POST', uri)
@@ -444,13 +445,13 @@ class _MyAppState extends State<MyApp> {
 
     // Initialize the pages list in initState
     _pages = [
-      StatsScreen(), // Add the new stats screen
       DracuNewsScreen(),
       DracuChatScreen(
         onMessagesUpdated: _refreshChat,
       ),
       DracuQuizScreen(survey: survey), // Provide the survey object here
       DracuVisionScreen(),
+      StatsScreen(), // Add the new stats screen
     ];
   }
 
@@ -485,10 +486,6 @@ class _MyAppState extends State<MyApp> {
           unselectedFontSize: 14.0,
           items: [
             BottomNavigationBarItem(
-              icon: Icon(Icons.bar_chart),
-              label: 'Stats',
-            ),
-            BottomNavigationBarItem(
               icon: Icon(Icons.language),
               label: 'DracuNews',
             ),
@@ -503,6 +500,10 @@ class _MyAppState extends State<MyApp> {
             BottomNavigationBarItem(
               icon: Icon(Icons.photo_camera),
               label: 'DracuVision',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.bar_chart),
+              label: 'Stats',
             ),
           ],
         ),
@@ -534,15 +535,6 @@ class DracuQuizScreen extends StatefulWidget {
   @override
   _DracuQuizScreenState createState() => _DracuQuizScreenState();
 }
-
-// class DracuVisionScreen extends StatelessWidget {
-//   @override
-//   Widget build(BuildContext context) {
-//     return Center(
-//       child: Text('Vision Screen'),
-//     );
-//   }
-// }
 
 class Question {
   String text;
@@ -693,11 +685,22 @@ class News {
 }
 
 class _APIChatsScreenState extends State<DracuChatScreen> {
-  final String apiUrl = 'https://bitsxmarato.onrender.com/api/chat/';
-
+  final String apiUrl = "$baseUrl/api/chat/";
+  bool _hasFetchedData = false; 
   TextEditingController _messageController = TextEditingController();
   List<String> _messages = [];
 
+  Future<Map<String, dynamic>> fetchAndInitData() async {
+    final String apiURL = "$baseUrl/api/messages/";
+    final response = await http.get(Uri.parse(apiUrl));
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      _updateMessages(data);
+      return data;
+    } else {
+      throw Exception('Failed to load data from API');
+    }
+  }
   Future<Map<String, dynamic>> fetchData() async {
     final response = await http.get(Uri.parse(apiUrl));
 
@@ -723,7 +726,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
     print('Message sent: $message');
 
     Map<String, String> body = {'message': message};
-    String apiUrl = 'https://10.0.2.2:8000/api/chat/';
+    String apiUrl = "$baseUrl/api/chat/";
     try {
       final response = await http.post(
         Uri.parse(apiUrl),
@@ -749,12 +752,22 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_hasFetchedData) {
+      fetchAndInitData().then((data) {
+        setState(() {
+          _hasFetchedData = true; // Actualiza la bandera después de cargar los datos
+        });
+      });
+    } else {
+      fetchData();
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('DracuChat'),
+        title: Text('DracuNews'),
       ),
-      body: FutureBuilder<Map<String, dynamic>>(
-        future: fetchData(),
+      body: FutureBuilder<Map<String, dynamic>?>(
+        future: fetchAndInitData(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
@@ -809,7 +822,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 }
 
 class _APINewsScreenState extends State<DracuNewsScreen> {
-  final String apiUrl = 'https://bitsxmarato.onrender.com/api/news';
+  final String apiUrl = '$baseUrl/api/news';
 
   Future<Map<String, dynamic>> fetchData() async {
     final response = await http.get(Uri.parse(apiUrl));
@@ -850,7 +863,7 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
                 children: newsList.map((news) {
               return Card(
                 child: ListTile(
-                  leading: Image.network(news.img, width: 100, height: 100), // Display the image
+                  leading: Image.network(news.img, width: 100, height: 100),
                   title: Text(news.title),
                   onTap: () {
                     _launchURL(news.link);
