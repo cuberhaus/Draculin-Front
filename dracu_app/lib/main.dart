@@ -9,7 +9,7 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
-const String baseUrl = 'https://bits-draculin.onrender.com';
+const String baseUrl = String.fromEnvironment('API_URL', defaultValue: 'https://bits-draculin.onrender.com');
 
 class CameraWidget extends StatefulWidget {
   final Function(String) onCapture;
@@ -591,7 +591,7 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
               style: TextStyle(color: Colors.black), // Black text color
             ),
             style: ElevatedButton.styleFrom(
-              primary: Colors.pink,
+              backgroundColor: Colors.pink,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -605,7 +605,7 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
               style: TextStyle(color: Colors.black), // Black text color
             ),
             style: ElevatedButton.styleFrom(
-              primary: Colors.grey,
+              backgroundColor: Colors.grey,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
@@ -651,7 +651,7 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
             onPressed: _restartQuiz,
             child: Text('Restart Quiz'),
             style: ElevatedButton.styleFrom(
-              primary: Colors.green,
+              backgroundColor: Colors.green,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
