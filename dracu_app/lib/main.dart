@@ -183,7 +183,7 @@ class _PeriodCalendarState extends State<PeriodCalendar> {
         onTap: () => _handleTap(day),
         child: Container(
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
+            border: Border.all(color: const Color(0xFF616161)),
           ),
           child: Stack(
             alignment: Alignment.center,
@@ -462,6 +462,30 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'Draculin',
+      themeMode: ThemeMode.dark,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.pink,
+          brightness: Brightness.light,
+        ),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.pink,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Color(0xFF1A1A2E),
+          foregroundColor: Colors.white,
+        ),
+        scaffoldBackgroundColor: const Color(0xFF0F0F1A),
+        cardTheme: const CardTheme(
+          color: Color(0xFF1A1A2E),
+        ),
+      ),
       home: Scaffold(
         appBar: AppBar(
           title: Text('Draculin'),
@@ -474,8 +498,9 @@ class _MyAppState extends State<MyApp> {
               _currentIndex = index;
             });
           },
-          selectedItemColor: Colors.pink,
-          unselectedItemColor: Colors.pink[100],
+          selectedItemColor: Colors.pinkAccent,
+          unselectedItemColor: Colors.pink[200],
+          backgroundColor: const Color(0xFF1A1A2E),
           iconSize: 36.0,
           selectedFontSize: 16.0,
           unselectedFontSize: 14.0,
@@ -585,10 +610,9 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () => _answerQuestion(true),
-            // child: Text('Sí'),
             child: Text(
               'Sí',
-              style: TextStyle(color: Colors.black), // Black text color
+              style: TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.pink,
@@ -602,10 +626,10 @@ class _DracuQuizScreenState extends State<DracuQuizScreen> {
             onPressed: () => _answerQuestion(false),
             child: Text(
               'No',
-              style: TextStyle(color: Colors.black), // Black text color
+              style: TextStyle(color: Colors.white),
             ),
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey,
+              backgroundColor: Colors.grey[700],
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(30),
               ),
