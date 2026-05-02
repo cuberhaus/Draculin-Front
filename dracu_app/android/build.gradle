@@ -7,6 +7,15 @@ buildscript {
 
     dependencies {
         classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // ── obs-experiment-embrace ────────────────────────────────────
+        // Embrace bundles its gradle plugin ("Swazzler") with the
+        // `embrace_android` Flutter pub package and exposes the
+        // version via the `emb_android_sdk` ext property. Reading it
+        // from the project (rather than hard-coding "6.x.y") keeps
+        // the Swazzler version locked to the pubspec dep — bumping
+        // `embrace: ^4.6.0` automatically bumps the Swazzler too.
+        // Reference: https://embrace.io/docs/flutter/integration/
+        classpath "io.embrace:embrace-swazzler:${findProject(':embrace_android')?.properties?.get('emb_android_sdk') ?: '6.16.0'}"
     }
 }
 

@@ -1,0 +1,9 @@
+{
+  "_comment_top": "Template — copy to embrace-config.json (gitignored) and replace the placeholders with the values from dash.embrace.io > Settings > Project. The Swazzler reads this at build time, so a missing or malformed file fails the gradle assemble task, not the runtime. Keep `app_framework: flutter` — without it, the Embrace Android SDK auto-instruments OkHttp interceptors that conflict with the Dart-side DracuHttpClient (which already composes the SDK's EmbraceHttpClient) and you'll see double-counted requests in the dashboard.",
+  "app_id": "REPLACE_ME_12_CHAR_HEX",
+  "api_token": "REPLACE_ME_32_CHAR_HEX",
+  "ndk_enabled": true,
+  "sdk_config": {
+    "app_framework": "flutter"
+  }
+}

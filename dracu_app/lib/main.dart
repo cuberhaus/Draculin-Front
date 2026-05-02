@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'dart:async';
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -9,7 +10,42 @@ import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 
+// ── obs-experiment-embrace ──────────────────────────────────────────
+// Embrace's Flutter SDK MUST be initialised before runApp so that
+// Dart-side uncaught exceptions, the first auto-instrumented HTTP
+// request, and the cold-start timing measurement all land in the
+// same session payload. The SDK degrades to a no-op on Flutter Web
+// (no embrace_web platform package exists) so the iframe Dockerfile
+// build path is unaffected.
+import 'package:embrace/embrace.dart';
+
+// `DracuHttpClient` wraps the SDK's own `EmbraceHttpClient`
+// (auto-recording every request as a network event) and adds the
+// `X-Embrace-Session-Id` header injection on top — so the
+// recorded payload + the backend BOTH see the session header.
+import 'observability/embrace_http_client.dart';
+
+// `DracuObs` is the thin facade over `package:embrace`. Every
+// breadcrumb / log / span / persona call goes through it so we
+// have a single chokepoint if we ever swap RUM vendors.
+import 'observability/embrace.dart';
+
+// Debug-only crash/ANR harness — adds a hidden 6th nav tab in
+// `kDebugMode` builds for the Maestro flows under
+// `observability/load-test/` to drive. Compiled away in release.
+import 'debug/crash_button.dart';
+
 const String baseUrl = String.fromEnvironment('API_URL', defaultValue: 'https://bits-draculin.onrender.com');
+
+// Singleton HTTP client shared by every screen. Lazily instantiated
+// on first use, which is guaranteed to happen AFTER main()'s
+// `Embrace.instance.start()` because the screens themselves only
+// fire requests inside `initState` / button callbacks. If Embrace
+// hasn't started yet, `DracuHttpClient` degrades the
+// session-header injection to a no-op (and the SDK's inner
+// EmbraceHttpClient quietly drops the recording), so the wrapper
+// stays safe even on the cold-start race.
+final http.Client httpClient = DracuHttpClient();
 
 class CameraWidget extends StatefulWidget {
   final Function(String) onCapture;
@@ -346,23 +382,74 @@ class _DracuVisionScreenState extends State<DracuVisionScreen> {
   }
 
 Future<String> processImage(String imagePath) async {
+  // ── Phase 4 — custom Performance Trace ────────────────────────────
+  // The "camera_capture" trace is the slowest user-perceived flow
+  // in the app (file IO → multipart upload → server-side ML
+  // inference → text response). Wrapping it in a parent span with
+  // three children gives Embrace's Performance dashboard a
+  // breakdown that's actually useful for diagnosing tail-latency
+  // regressions, not just a single black-box "processImage was
+  // slow" signal.
+  final parent = await DracuObs.startSpan('camera_capture');
+  final imageBytes = await File(imagePath).length().catchError((_) => 0);
   try {
     final uri = Uri.parse('$baseUrl/api/camera/');
 
-    var request = http.MultipartRequest('POST', uri)
-      ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+    // Phase 1 — read the image file off disk + attach to the
+    // multipart envelope. Renamed `compress` per the plan for
+    // forward-compat (a future Phase will probably introduce
+    // client-side JPEG compression here).
+    final request = await DracuObs.recordSpan<http.MultipartRequest>(
+      'compress',
+      parent: parent,
+      attributes: {'image.bytes': imageBytes.toString()},
+      code: () async {
+        return http.MultipartRequest('POST', uri)
+          ..files.add(await http.MultipartFile.fromPath('image', imagePath));
+      },
+    );
 
-    var response = await request.send();
+    // Phase 2 — send via the wrapped client so the multipart
+    // upload gets X-Embrace-Session-Id and is recorded as its own
+    // network event in addition to this span.
+    final uploadStart = DateTime.now();
+    final response = await DracuObs.recordSpan<http.StreamedResponse>(
+      'upload',
+      parent: parent,
+      attributes: {'image.bytes': imageBytes.toString()},
+      code: () async => httpClient.send(request),
+    );
+    final networkDurationMs =
+        DateTime.now().difference(uploadStart).inMilliseconds;
 
-    if (response.statusCode == 200) {
-      // Procesa el cuerpo de la respuesta
-      return await http.Response.fromStream(response).then((value) => value.body);
-    } else {
-      // Maneja el error del servidor
-      return 'Error: Server returned status code ${response.statusCode}';
-    }
-  } catch (e) {
-    // Maneja cualquier excepción
+    // Phase 3 — drain the streamed response into a String the UI
+    // can render. Captures parse/decode time which is occasionally
+    // non-trivial on slow devices for large server payloads.
+    final body = await DracuObs.recordSpan<String>(
+      'parse_response',
+      parent: parent,
+      attributes: {
+        'response.status': response.statusCode.toString(),
+        'network.duration_ms': networkDurationMs.toString(),
+      },
+      code: () async {
+        if (response.statusCode == 200) {
+          return await http.Response.fromStream(response)
+              .then((value) => value.body);
+        } else {
+          return 'Error: Server returned status code ${response.statusCode}';
+        }
+      },
+    );
+    await parent?.stop();
+    return body;
+  } catch (e, stack) {
+    // Mark the parent span as a failure so the dashboard's
+    // span-error rate goes up. logHandledDartError keeps this off
+    // the crash-free-session metric (it was caught) but still
+    // surfaces a stack trace in the logs panel.
+    await parent?.stop(errorCode: ErrorCode.failure);
+    DracuObs.recordHandledError(e, stack);
     return 'Error: Failed to send image - $e';
   }
 }
@@ -391,8 +478,78 @@ Future<String> processImage(String imagePath) async {
   }
 }
 
-void main() {
-  runApp(MyApp());
+Future<void> main() async {
+  // `ensureInitialized()` is required because `Embrace.instance.start`
+  // touches platform channels (Method/Event channels) before runApp,
+  // and those channels need the binary messenger from
+  // `WidgetsFlutterBinding` to be ready.
+  WidgetsFlutterBinding.ensureInitialized();
+  // Boot the SDK first (sets up the native bridge, reads
+  // embrace-config.json / Embrace-Info.plist). Synchronously
+  // await — runApp must wait so the very first session captures
+  // the cold-start spans cleanly.
+  await Embrace.instance.start();
+  // Then install the global Dart error handlers and run the app
+  // inside the guarded zone so uncaught zone errors flow through
+  // the SDK's crash handler. We use the explicit
+  // `installErrorHandlers` API rather than `start(action: ...)` so
+  // the intent of "wrap runApp in runZonedGuarded" is obvious at
+  // the call site (and so the code keeps working across SDK
+  // versions where `start`'s `action` param has wandered between
+  // positional and named).
+  await Embrace.instance.installErrorHandlers(() async {
+    runApp(MyApp());
+  });
+  // Fire-and-forget: bump the persisted launch counter and tag
+  // the session with a persona. Doesn't block runApp because (a)
+  // it's disk IO and (b) Embrace's persona model applies to the
+  // CURRENT session — if it lands one frame late the dashboard's
+  // session-level segmentation still works.
+  unawaited(_recordLaunchAndSetPersona());
+}
+
+/// Persisted launch counter → user persona for Embrace's
+/// "Personas" filter. The counter lives in the app docs dir
+/// (path_provider) as a one-line int file. Keeps no other state,
+/// so wiping the app's data resets the persona to first-time-user.
+///
+/// Buckets:
+///   1     → first-time-user   (no tag — Embrace shows the default)
+///   2-5   → returning
+///   6+    → power-user
+///
+/// We don't try to handle migration / corruption — if the file
+/// can't be read, we treat it as launch #1 and overwrite.
+Future<void> _recordLaunchAndSetPersona() async {
+  try {
+    final dir = await getApplicationDocumentsDirectory();
+    final file = File('${dir.path}/.embrace_launch_count');
+    int count = 0;
+    if (await file.exists()) {
+      try {
+        count = int.parse((await file.readAsString()).trim());
+      } catch (_) {
+        count = 0;
+      }
+    }
+    count += 1;
+    await file.writeAsString(count.toString());
+
+    if (count >= 6) {
+      DracuObs.addPersona('power-user');
+    } else if (count >= 2) {
+      DracuObs.addPersona('returning');
+    }
+    // count == 1 → no persona, intentional. Embrace's default
+    // segment "no persona set" already groups first-time users.
+
+    // Surface the count as a session property too — searchable in
+    // the Sessions tab, useful when triaging "did this user
+    // actually use the app before crashing?".
+    DracuObs.info('launch', properties: {'count': count.toString()});
+  } catch (e, stack) {
+    DracuObs.recordHandledError(e, stack);
+  }
 }
 
 class MyApp extends StatefulWidget {
@@ -447,6 +604,7 @@ class _MyAppState extends State<MyApp> {
       DracuQuizScreen(survey: survey), // Provide the survey object here
       DracuVisionScreen(),
       StatsScreen(), // Add the new stats screen
+      ...debugCrashTabPages(),
     ];
   }
 
@@ -494,6 +652,22 @@ class _MyAppState extends State<MyApp> {
         bottomNavigationBar: BottomNavigationBar(
           currentIndex: _currentIndex,
           onTap: (index) {
+            // Phase 4 — breadcrumb on every nav change. Embrace's
+            // crash UX shows the breadcrumb timeline of the last
+            // ~30 s before any error, so this is the single most
+            // valuable telemetry to add: if a user crashed on
+            // DracuVision, the trail tells you they came from
+            // DracuChat, not DracuNews.
+            const labels = [
+              'DracuNews',
+              'DracuChat',
+              'DracuQuiz',
+              'DracuVision',
+              'DracuStats',
+              'Debug',
+            ];
+            final label = (index >= 0 && index < labels.length) ? labels[index] : 'unknown';
+            DracuObs.breadcrumb('nav: $label');
             setState(() {
               _currentIndex = index;
             });
@@ -525,6 +699,7 @@ class _MyAppState extends State<MyApp> {
               icon: Icon(Icons.bar_chart),
               label: 'DracuStats',
             ),
+            ...debugCrashTabItems(),
           ],
         ),
       ),
@@ -712,7 +887,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   List<String> _messages = [];
 
   Future<Map<String, dynamic>> fetchAndInitData() async {
-    final response = await http.get(Uri.parse(apiUrlInit));
+    final response = await httpClient.get(Uri.parse(apiUrlInit));
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       _updateMessages(data);
@@ -723,7 +898,7 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
 
   Future<Map<String, dynamic>> fetchData() async {
-    final response = await http.get(Uri.parse(apiUrlMess));
+    final response = await httpClient.get(Uri.parse(apiUrlMess));
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
@@ -749,11 +924,12 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
   }
   void _sendMessage(String message) async {
     print('Message sent: $message');
+    DracuObs.breadcrumb('chat: send (len=${message.length})');
 
     Map<String, String> body = {'message': message};
     String apiUrl = "$baseUrl/api/chat/";
     try {
-      final response = await http.post(
+      final response = await httpClient.post(
         Uri.parse(apiUrl),
         body: json.encode(body),
         headers: {'Content-Type': 'application/json'},
@@ -761,12 +937,25 @@ class _APIChatsScreenState extends State<DracuChatScreen> {
 
       if (response.statusCode == 200) {
         print('Message sent successfully');
-        await fetchData(); // Recargar mensajes después de enviar el mensaje
+        await fetchData();
       } else {
         print('Failed to send message. Status code: ${response.statusCode}');
+        // Non-2xx is a server-side problem worth surfacing in the
+        // dashboard's Logs tab — Embrace's network event already
+        // captured the status, this log gives the dashboard a
+        // searchable string-typed property.
+        DracuObs.warn(
+          'chat: server returned non-2xx',
+          properties: {'status': response.statusCode.toString()},
+        );
       }
-    } catch (e) {
+    } catch (e, stack) {
       print('Error sending message: $e');
+      // ERROR-level breadcrumb so the timeline shows a clear
+      // anomaly marker if a crash happens later in the same session
+      // (Embrace renders ERROR breadcrumbs with a red icon).
+      DracuObs.breadcrumb('chat: send failed (${e.runtimeType})');
+      DracuObs.recordHandledError(e, stack);
     }
 
     _messageController.clear();
@@ -849,7 +1038,7 @@ class _APINewsScreenState extends State<DracuNewsScreen> {
   final String apiUrl = '$baseUrl/api/news';
 
   Future<Map<String, dynamic>> fetchData() async {
-    final response = await http.get(Uri.parse(apiUrl));
+    final response = await httpClient.get(Uri.parse(apiUrl));
 
     if (response.statusCode == 200) {
       return json.decode(response.body);

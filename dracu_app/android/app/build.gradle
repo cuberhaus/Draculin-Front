@@ -4,6 +4,15 @@ plugins {
     id "dev.flutter.flutter-gradle-plugin"
 }
 
+// ── obs-experiment-embrace ────────────────────────────────────────────
+// Apply the Swazzler the legacy way (the modern `id` syntax in the
+// `plugins` block is unsupported by the Embrace plugin yet). The
+// classpath dep is declared in the root `build.gradle` buildscript
+// block. The Swazzler bytecode-rewrites release builds to bootstrap
+// the Embrace SDK and to upload R8/Dart mappings post-build using
+// the credentials in `embrace-config.json`.
+apply plugin: 'embrace-swazzler'
+
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file('local.properties')
 if (localPropertiesFile.exists()) {
@@ -45,8 +54,12 @@ android {
         applicationId "com.example.dracu_app"
         // You can update the following values to match your application needs.
         // For more information, see: https://docs.flutter.dev/deployment/android#reviewing-the-gradle-build-configuration.
-        // minSdkVersion flutter.minSdkVersion
-        minSdkVersion 21
+        // ── obs-experiment-embrace ────────────────────────────────────
+        // Bumped from 21 → 23 because Embrace's Android SDK 6.x
+        // dropped support for API 21–22 (final 21-compatible release
+        // was 5.x). API 23 (Android 6.0) covers >99% of active devices
+        // per the Distribution dashboard, so the cost is effectively 0.
+        minSdkVersion 23
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
@@ -57,6 +70,14 @@ android {
             // TODO: Add your own signing config for the release build.
             // Signing with the debug keys for now, so `flutter run --release` works.
             signingConfig signingConfigs.debug
+            // ── obs-experiment-embrace ────────────────────────────────
+            // R8 minification is REQUIRED for the Swazzler's mapping
+            // upload step to fire. Without minification the build
+            // succeeds but no mapping.txt is produced and crashes in
+            // the Embrace dashboard show un-deobfuscated frames.
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

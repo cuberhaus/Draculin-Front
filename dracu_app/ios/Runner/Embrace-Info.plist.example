@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Template — copy to Embrace-Info.plist (gitignored) and replace the
+  placeholders with the values shown in dash.embrace.io > Settings >
+  Project. The Embrace iOS SDK loads this file at process start
+  (before runApp), so missing or malformed values fail fast at
+  app-launch with an Embrace.SetupError, not at first session capture.
+
+  Schema: https://embrace.io/docs/ios/integration/embrace-info-plist/
+-->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>EMBRACE_APP_ID</key>
+	<string>REPLACE_ME_12_CHAR_HEX</string>
+	<key>EMBRACE_API_TOKEN</key>
+	<string>REPLACE_ME_32_CHAR_HEX</string>
+	<key>EMBRACE_CRASH_REPORT_ENABLED</key>
+	<true/>
+	<key>EMBRACE_NETWORK_CAPTURE_ENABLED</key>
+	<true/>
+	<key>EMBRACE_NETWORK_TRACK_ID_HEADER</key>
+	<string>X-Embrace-Session-Id</string>
+</dict>
+</plist>

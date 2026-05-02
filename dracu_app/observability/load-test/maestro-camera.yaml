@@ -1,0 +1,55 @@
+# Camera flow — exercises the DracuVision multipart upload
+# repeatedly so the camera_capture Performance Trace gets
+# enough samples for Embrace's percentile histograms (p50, p95,
+# p99) to stabilise.
+#
+# Used by: any time you want to verify the parent/child span
+# tree (compress, upload, parse_response) is rendering correctly
+# in the dashboard's Performance section. Also useful for
+# baseline-vs-degraded comparisons (e.g. introduce a 200 ms
+# delay in `parse_response` and re-run).
+#
+# Note: emulator camera produces a black frame, so the backend's
+# image-processing endpoint may return an error. That's fine —
+# the PoC validates the timing capture, not the ML output.
+
+appId: com.example.dracu_app
+---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Repeat 5x so each child span has 5 timing samples.
+- repeat:
+    times: 5
+    commands:
+      - tapOn: 'DracuVision'
+      - waitForAnimationToEnd:
+          timeout: 3000
+      # The DracuVision screen has a "Capture" button; tap it.
+      # If the camera permission prompt appears on first run,
+      # accept it and continue.
+      - tapOn:
+          text: 'Allow'
+          optional: true
+      - tapOn:
+          text: 'While using the app'
+          optional: true
+      - tapOn:
+          text: 'Take Photo'
+          optional: true
+      - tapOn:
+          id: 'shutter'
+          optional: true
+      # Wait for the multipart upload + server roundtrip + parse.
+      - waitForAnimationToEnd:
+          timeout: 8000
+      # Bounce off the screen so the next iteration triggers a
+      # fresh state (and a fresh camera_capture parent span).
+      - tapOn: 'DracuStats'
+      - waitForAnimationToEnd
+
+- pressKey: 'Home'
+- waitForAnimationToEnd:
+    timeout: 6000

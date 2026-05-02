@@ -1,0 +1,74 @@
+# Baseline flow — exercises every screen so Embrace's
+# Sessions / Network / Performance tabs all show data.
+#
+# Used by:
+#   * Scenario 1 (cold-start regression) — run twice
+#     (before/after the synthetic 600 ms delay) and diff the App
+#     Startup Time panel.
+#   * Scenario 2 (network failure spike) — run while
+#     simultaneously killing the local Django backend mid-flow.
+#
+# Runs on Android emulator OR physical device. iOS support
+# requires a macOS host (Maestro CLI cross-platform but iOS
+# automation needs a simulator).
+
+appId: com.example.dracu_app
+---
+# Cold start — Maestro records this as the time from `launchApp`
+# to the first `assertVisible`.
+- launchApp:
+    clearState: true
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# DracuNews — fires GET /api/news/. Tap an article so the
+# url_launcher event lands in the breadcrumb timeline.
+- assertVisible: 'DracuNews'
+- tapOn: 'DracuNews'
+- waitForAnimationToEnd
+- scrollUntilVisible:
+    element: 'La Marato'
+    direction: DOWN
+    timeout: 6000
+
+# DracuChat — fires GET /api/chat/ (init), then POST /api/chat/
+# with a message. The `_sendMessage` handler emits a breadcrumb
+# and a WARN log if the backend returns non-2xx.
+- tapOn: 'DracuChat'
+- waitForAnimationToEnd
+- inputText: 'Maestro baseline ping'
+- tapOn:
+    id: 'send-button'
+    optional: true   # the field doesn't exist as id; relies on Material default tooltip
+- tapOn:
+    text: 'Send'
+    optional: true
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# DracuQuiz — local-only screen, no network call. Useful for
+# the breadcrumb timeline though.
+- tapOn: 'DracuQuiz'
+- waitForAnimationToEnd
+
+# DracuVision — fires POST /api/camera/ (multipart upload). The
+# wrapped client adds X-Embrace-Session-Id; the camera_capture
+# Performance Trace + 3 child spans (compress/upload/parse)
+# materialise here.
+- tapOn: 'DracuVision'
+- waitForAnimationToEnd:
+    timeout: 4000
+
+# DracuStats — local-only. Last screen before background.
+- tapOn: 'DracuStats'
+- waitForAnimationToEnd
+
+# Background → foreground triggers an Embrace session flush
+# (the SDK uploads the session payload when the app goes to
+# background, then opens a new session on the next foreground).
+- pressKey: 'Home'
+- waitForAnimationToEnd:
+    timeout: 8000
+- launchApp:
+    clearState: false   # don't reset launch counter — persona logic depends on it
+- waitForAnimationToEnd

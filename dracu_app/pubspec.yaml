@@ -19,7 +19,12 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.3 <4.0.0'
+  # Bumped on `obs-experiment-embrace` from `>=3.2.3` because the
+  # `embrace` Flutter SDK (>=6.7) requires Dart >=3.5 / Flutter >=3.24.
+  # This is a no-op on the Flutter Web build (Embrace doesn't ship a
+  # web target) so the iframe Dockerfile keeps working unchanged.
+  sdk: '>=3.5.0 <4.0.0'
+  flutter: '>=3.27.0'
 
 # Dependencies specify other packages that your package needs in order to work.
 # To automatically upgrade your package dependencies to the latest versions
@@ -37,6 +42,21 @@ dependencies:
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: 1.0.6
+  # ── Mobile RUM (`obs-experiment-embrace` branch) ────────────────────
+  # `embrace` is the user-facing facade. `embrace_android` and
+  # `embrace_ios` are the platform implementations — `embrace` pulls
+  # them in transitively, but listing them explicitly here is the
+  # idiomatic way to pin per-platform versions and document intent.
+  # Web target is intentionally absent: Embrace ships no Flutter Web
+  # SDK; the iframe Dockerfile build at `Draculin-Front/Dockerfile`
+  # ignores this dep block (pub resolves them as no-ops on web).
+  #
+  # Versions kept in lockstep with the Swazzler in
+  # `android/settings.gradle` and the AppDelegate setup in
+  # `ios/Runner/AppDelegate.swift`. Keep them aligned across upgrades.
+  embrace: ^4.6.0
+  embrace_android: ^4.6.0
+  embrace_ios: ^4.6.0
 
 dev_dependencies:
   flutter_test:

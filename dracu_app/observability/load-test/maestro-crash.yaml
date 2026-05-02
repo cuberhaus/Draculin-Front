@@ -1,0 +1,65 @@
+# Crash flow — drives Scenario 3 (Deliberate Dart crash).
+#
+# Pre-conditions:
+#   * App must be a DEBUG build (kDebugMode true), so the
+#     hidden 6th nav tab "Debug" is present and the
+#     CrashButtonScreen renders its three FloatingActionButtons.
+#     Run `make build-android-debug` first.
+#   * Embrace SDK must have started successfully on the previous
+#     launch — Maestro can't see SDK init failures, so check the
+#     dashboard for the previous session before assuming the
+#     crash will be captured here.
+#
+# What happens:
+#   1. App opens, cold-start metrics fire.
+#   2. Tap "Debug" nav tab.
+#   3. Tap "Throw Dart Exception" — runZonedGuarded catches the
+#      StateError and marks the session as crashed. The Embrace
+#      SDK does NOT upload at this moment; it stages the payload
+#      on disk.
+#   4. Maestro detects the dead app (assertVisible on a
+#      now-missing element fires). Because the StateError tears
+#      down the widget tree, the next assertVisible times out;
+#      we rely on `optional: true` to keep the flow exit clean.
+#   5. The launchApp at the bottom restarts the app — THIS is
+#      the moment Embrace uploads the staged crash payload from
+#      step 3. The dashboard shows the crash within 60 s.
+
+appId: com.example.dracu_app
+---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Build up some breadcrumb noise before the crash so the
+# pre-crash timeline is non-trivial — Embrace's flagship UX is
+# "what happened in the 30 s before the crash?".
+- tapOn: 'DracuNews'
+- waitForAnimationToEnd
+- tapOn: 'DracuChat'
+- waitForAnimationToEnd
+
+# The Debug tab is the 6th nav item. In landscape it may be off
+# screen — scroll right just in case.
+- tapOn:
+    text: 'Debug'
+- waitForAnimationToEnd:
+    timeout: 2000
+
+# Tap the orange "Throw Dart Exception" FAB.
+- tapOn: 'Throw Dart Exception'
+# The app dies here. Maestro sees the next assertVisible time
+# out, which is fine.
+- waitForAnimationToEnd:
+    timeout: 4000
+    optional: true
+- assertVisible:
+    text: 'Throw Dart Exception'
+    optional: true
+
+# Restart — uploads the staged crash payload.
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 6000

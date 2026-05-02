@@ -41,3 +41,15 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# ── obs-experiment-embrace ──────────────────────────────────────────
+# Per-developer Embrace credentials must NEVER be committed. Each
+# checkout copies *.example → real file and pastes their own APP_ID +
+# API_TOKEN from dash.embrace.io. CI reads them from secrets at build
+# time and writes the file before `flutter build` runs.
+android/app/src/main/embrace-config.json
+ios/Runner/Embrace-Info.plist
+observability/.env.embrace
+# Dart split-debug-info — generated per release build, machine-local.
+build/symbols/
+

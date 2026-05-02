@@ -1,7 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!--
+      android:name was "${applicationName}" (Flutter's default Application
+      shim that no-ops onCreate). On `obs-experiment-embrace` we replace
+      it with our own DracuApplication subclass so the Embrace SDK gets a
+      chance to bootstrap BEFORE the Flutter engine plugin registrant
+      runs — that's the only window in which native crashes during
+      cold-start can be captured.
+    -->
     <application
         android:label="dracu_app"
-        android:name="${applicationName}"
+        android:name=".DracuApplication"
         android:icon="@mipmap/draculito">
         <activity
             android:name=".MainActivity"

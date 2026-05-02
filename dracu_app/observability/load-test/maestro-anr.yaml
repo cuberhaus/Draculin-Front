@@ -1,0 +1,66 @@
+# ANR flow — drives Scenario 4 (Application Not Responding).
+#
+# Pre-conditions:
+#   * App must be a DEBUG build for the Debug tab to be present.
+#   * Run on Android (emulator OR physical). iOS equivalent
+#     ("App Hang") fires only on macOS-built artefacts; the
+#     equivalent flow there would tap the same button on the
+#     iOS simulator from the macOS CI runner.
+#
+# What happens:
+#   1. App opens, cold-start metrics fire.
+#   2. Tap "Debug" nav tab.
+#   3. Tap "ANR (6s main-thread sleep)" — the handler busy-waits
+#      on the main isolate for 6 seconds. Android's WatchDog
+#      raises ANR at the 5-s mark, OS shows the "App Not
+#      Responding" dialog, Embrace samples the main thread stack
+#      every 100 ms during the freeze.
+#   4. Maestro waits 8 s (longer than the freeze) so the post-ANR
+#      state is observable.
+#   5. The OS may have killed the app or kept it alive. Either
+#      way, foreground/background to flush.
+
+appId: com.example.dracu_app
+---
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 5000
+
+# Pre-ANR breadcrumb noise so the timeline is non-trivial.
+- tapOn: 'DracuNews'
+- waitForAnimationToEnd
+- tapOn: 'DracuQuiz'
+- waitForAnimationToEnd
+- tapOn:
+    text: 'Debug'
+- waitForAnimationToEnd
+
+# Tap the red "ANR" FAB. Maestro will block here for the full
+# duration of the busy-wait — that's expected.
+- tapOn: 'ANR (6s main-thread sleep)'
+
+# Wait beyond the busy-wait + the OS's ANR dialog window so
+# everything settles.
+- waitForAnimationToEnd:
+    timeout: 12000
+    optional: true
+
+# Try to dismiss the ANR dialog if Android put one up
+# (system-level dialogs aren't accessible by the app's appId, so
+# we rely on plain "Wait" / "Close app" tap fallbacks).
+- tapOn:
+    text: 'Wait'
+    optional: true
+- tapOn:
+    text: 'Close app'
+    optional: true
+
+# Background → foreground to flush the session.
+- pressKey: 'Home'
+- waitForAnimationToEnd:
+    timeout: 4000
+- launchApp:
+    clearState: false
+- waitForAnimationToEnd:
+    timeout: 6000
