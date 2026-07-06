@@ -1,0 +1,17 @@
+{
+  "//": "cuberhaus reproducible dev environment (dart). NOTE: ships the Dart SDK for editing/analysis and agent tooling. The Flutter SDK and mobile emulators are NOT included; on-device/emulator Flutter builds need a host Flutter install. Managed source: cuberhaus-workspace/assets/devcontainers/dart.",
+  "name": "cuberhaus dart",
+  "image": "dart:stable",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "postCreateCommand": "bash -lc 'if [ -f skills-lock.json ]; then make skills-restore || true; fi; if [ -f pubspec.yaml ]; then dart pub get || true; fi'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "Dart-Code.dart-code"
+      ]
+    }
+  }
+}
